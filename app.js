@@ -593,12 +593,17 @@ if (!loadedUsersDB[activeUserKey]) {
 }
 const activeUser = loadedUsersDB[activeUserKey];
 
+let authFlag = localStorage.getItem("myntra_is_logged_in");
+let isInitiallyLoggedIn = authFlag === null ? true : (authFlag === "true");
+
 const AppState = {
+  isLoggedIn: isInitiallyLoggedIn,
+  pendingAuthCallback: null,
   usersDB: loadedUsersDB,
   currentUserId: activeUserKey,
-  cart: activeUser.cart || [],
-  wishlist: activeUser.wishlist || [],
-  orders: activeUser.orders || [],
+  cart: isInitiallyLoggedIn ? (activeUser.cart || []) : [],
+  wishlist: isInitiallyLoggedIn ? (activeUser.wishlist || []) : [],
+  orders: isInitiallyLoggedIn ? (activeUser.orders || []) : [],
   addresses: activeUser.addresses || [],
   user: {
     name: activeUser.name,
@@ -615,6 +620,25 @@ const AppState = {
   activeProductModalId: null,
   selectedModalSize: null
 };
+
+// Helper to look up user by phone, email or name
+function findUserInDB(name, mobile, email) {
+  const normPhone = mobile ? String(mobile).replace(/\D/g, '').slice(-10) : "";
+  const normEmail = email ? String(email).toLowerCase().trim() : "";
+  const normName = name ? String(name).toLowerCase().trim() : "";
+
+  for (const key in AppState.usersDB) {
+    const u = AppState.usersDB[key];
+    const uPhone = (u.mobile || "").replace(/\D/g, '').slice(-10);
+    const uEmail = (u.email || "").toLowerCase().trim();
+    const uName = (u.name || "").toLowerCase().trim();
+
+    if (normPhone && uPhone === normPhone) return key;
+    if (normEmail && uEmail === normEmail) return key;
+    if (normName && uName === normName) return key;
+  }
+  return null;
+}
 
 // State Persistence Helper (Saves to the active user's partition)
 function saveState() {
@@ -645,34 +669,58 @@ function saveState() {
 
   localStorage.setItem("myntra_users_db", JSON.stringify(AppState.usersDB));
   localStorage.setItem("myntra_active_user_key", currentKey);
+  localStorage.setItem("myntra_is_logged_in", AppState.isLoggedIn ? "true" : "false");
   updateBadges();
 }
 
-// User Switching / Login by Name
-function loginUser(rawName) {
-  if (!rawName || !rawName.trim()) {
-    showToast("Please enter a name to log in", "error");
-    return;
+// Authentication Gate Check
+function requireAuth(reason = "generic", callback = null) {
+  if (!AppState.isLoggedIn) {
+    AppState.pendingAuthCallback = callback;
+    openLoginModal(reason);
+    return false;
   }
-  const name = rawName.trim();
-  const key = name.toLowerCase();
+  return true;
+}
 
-  // Save current active user data first
-  saveState();
+// Complete Login with Name, Phone and Email
+function loginWithFullDetails(rawName, rawMobile, rawEmail) {
+  const name = (rawName || "").trim();
+  const mobile = (rawMobile || "").trim();
+  const email = (rawEmail || "").trim();
 
-  // If user does not exist yet, create a fresh account for them
-  if (!AppState.usersDB[key]) {
+  if (!name || name.length < 2) {
+    showToast("Please enter a valid full name", "error");
+    return false;
+  }
+
+  const cleanPhone = mobile.replace(/\D/g, '').slice(-10);
+  if (!cleanPhone || cleanPhone.length < 10) {
+    showToast("Please enter a valid 10-digit mobile number", "error");
+    return false;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    showToast("Please enter a valid email address", "error");
+    return false;
+  }
+
+  // Find if user already exists
+  let key = findUserInDB(name, cleanPhone, email);
+  if (!key) {
+    key = name.toLowerCase();
     AppState.usersDB[key] = {
       name: name,
-      email: `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
-      mobile: `+91 98${Math.floor(10000000 + Math.random() * 90000000)}`,
+      email: email,
+      mobile: `+91 ${cleanPhone}`,
       tier: "Myntra Insider Member",
       superCoins: 150,
       addresses: [
         {
           id: `addr_${Date.now()}`,
           name: name,
-          mobile: `98${Math.floor(10000000 + Math.random() * 90000000)}`,
+          mobile: cleanPhone,
           pincode: "110001",
           address: "Sector 14, Main Road",
           city: "New Delhi",
@@ -685,10 +733,16 @@ function loginUser(rawName) {
       wishlist: [],
       orders: []
     };
+  } else {
+    // Update existing user details if provided
+    AppState.usersDB[key].name = name;
+    AppState.usersDB[key].email = email;
+    AppState.usersDB[key].mobile = `+91 ${cleanPhone}`;
   }
 
   AppState.currentUserId = key;
   const userData = AppState.usersDB[key];
+  AppState.isLoggedIn = true;
   AppState.user = {
     name: userData.name,
     email: userData.email,
@@ -710,58 +764,162 @@ function loginUser(rawName) {
   renderWishlist();
   updateBadges();
 
-  showToast(`Welcome, ${userData.name}! Your orders & bag loaded.`, "success");
+  showToast(`Welcome, ${userData.name}! Logged in successfully.`, "success");
+
+  // If there was an action waiting for login, execute it!
+  if (typeof AppState.pendingAuthCallback === "function") {
+    const cb = AppState.pendingAuthCallback;
+    AppState.pendingAuthCallback = null;
+    setTimeout(() => cb(), 150);
+  }
+
+  return true;
 }
 
-function openLoginModal() {
+// User Switching / Login by Name (Backward compatible helper)
+function loginUser(rawName) {
+  if (!rawName || !rawName.trim()) {
+    showToast("Please enter a name to log in", "error");
+    return;
+  }
+  const name = rawName.trim();
+  const key = findUserInDB(name, null, null) || name.toLowerCase();
+  
+  if (AppState.usersDB[key]) {
+    const u = AppState.usersDB[key];
+    const phone = (u.mobile || "9876543210").replace(/\D/g, '').slice(-10);
+    const email = u.email || `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`;
+    loginWithFullDetails(u.name, phone, email);
+  } else {
+    const dummyPhone = `98${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const dummyEmail = `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`;
+    loginWithFullDetails(name, dummyPhone, dummyEmail);
+  }
+}
+
+// Logout User
+function logoutUser() {
+  saveState();
+  AppState.isLoggedIn = false;
+  localStorage.setItem("myntra_is_logged_in", "false");
+  AppState.cart = [];
+  AppState.wishlist = [];
+  AppState.orders = [];
+
+  closeAllModals();
+  updateBadges();
+  renderCatalog();
+  showToast("Logged out successfully! Login to view orders or bag.", "info");
+}
+
+function handleProfileHeaderClick() {
+  if (AppState.isLoggedIn) {
+    openProfileModal();
+  } else {
+    openLoginModal("profile");
+  }
+}
+
+function openLoginModal(reason = "generic") {
   const modal = document.getElementById("loginModal");
   const content = document.getElementById("loginModalContent");
   if (!modal || !content) return;
 
-  const currentName = AppState.user.name;
+  let reasonBannerText = "✨ Login or Signup with Name, Mobile & Email";
+  let reasonBannerColor = "linear-gradient(135deg, #ff3f6c 0%, #ff6b8b 100%)";
+
+  if (reason === "orders") {
+    reasonBannerText = "📦 Login required to view your Orders & Track packages";
+  } else if (reason === "checkout") {
+    reasonBannerText = "🛍️ Login required to complete your order & Delivery";
+  } else if (reason === "wishlist") {
+    reasonBannerText = "❤️ Login required to access & save your Wishlist";
+  } else if (reason === "profile") {
+    reasonBannerText = "👤 Login required to view your Profile & Addresses";
+  }
+
+  const currentName = AppState.isLoggedIn ? AppState.user.name : "";
+  const currentPhone = AppState.isLoggedIn ? (AppState.user.mobile || "").replace(/\D/g, '').slice(-10) : "";
+  const currentEmail = AppState.isLoggedIn ? AppState.user.email : "";
 
   content.innerHTML = `
     <div class="login-modal-layout">
-      <div class="login-brand-banner">
-        <div class="login-avatar">${currentName.charAt(0)}</div>
+      <!-- Authentic Myntra Hot-Pink Header -->
+      <div class="login-brand-banner" style="background: ${reasonBannerColor};">
+        <div class="login-avatar">${AppState.isLoggedIn ? currentName.charAt(0) : 'M'}</div>
         <div class="login-user-info">
-          <h4>Currently Logged In:</h4>
-          <h3>${currentName}</h3>
-          <span class="login-orders-count">📦 ${AppState.orders.length} Orders | 🛍️ ${AppState.cart.length} in Bag</span>
+          <h4>${reasonBannerText}</h4>
+          <h3>${AppState.isLoggedIn ? `Logged in: ${currentName}` : 'Myntra Fashion Login'}</h3>
+          <span class="login-orders-count">
+            ${AppState.isLoggedIn 
+              ? `📦 ${AppState.orders.length} Orders | 📱 ${AppState.user.mobile}` 
+              : '⚡ Enter Name, Mobile & Email to view Orders & Bag'}
+          </span>
         </div>
       </div>
 
-      <div class="login-form-box">
-        <label for="loginNameInput"><b>Enter Your Name to Login / Switch:</b></label>
-        <div class="login-input-row">
-          <input type="text" id="loginNameInput" placeholder="Enter your name (e.g. Rahul, Priya, Vikram...)" autofocus />
-          <button class="btn btn-primary" onclick="submitLoginInput()">LOGIN ➔</button>
+      ${AppState.isLoggedIn ? `
+        <div class="already-logged-box">
+          <p>You are currently logged in as <b>${AppState.user.name}</b> (${AppState.user.email}).</p>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn btn-outline btn-sm" onclick="closeAllModals(); openOrderHistoryModal();">View My Orders</button>
+            <button class="btn btn-danger-outline btn-sm" onclick="logoutUser()">🚪 Logout</button>
+          </div>
         </div>
-        <small class="login-help-text">✨ Kisi ka bhi name type karein! Naya name type karne par unka personal account khulega aur Order History unke naam se alag save hogi.</small>
+      ` : ''}
+
+      <!-- Interactive 3-Field Login Form -->
+      <div class="login-form-box" id="loginFormContainer">
+        <div class="login-field-group">
+          <label for="loginNameInput"><b>1. Full Name:</b></label>
+          <input type="text" id="loginNameInput" placeholder="Enter Full Name (e.g. Rahul Sharma)" value="${currentName}" autofocus />
+        </div>
+
+        <div class="login-field-group">
+          <label for="loginPhoneInput"><b>2. Mobile Number (10 Digits):</b></label>
+          <div class="phone-input-wrap">
+            <span class="phone-code">+91</span>
+            <input type="tel" id="loginPhoneInput" maxlength="10" placeholder="10-digit Mobile Number (e.g. 9876543210)" value="${currentPhone}" />
+          </div>
+        </div>
+
+        <div class="login-field-group">
+          <label for="loginEmailInput"><b>3. Email Address:</b></label>
+          <input type="email" id="loginEmailInput" placeholder="Email Address (e.g. rahul@example.com)" value="${currentEmail}" />
+        </div>
+
+        <button class="btn btn-primary btn-block btn-large btn-get-otp" onclick="requestLoginOTP()">
+          CONTINUE (GET OTP & LOGIN) ➔
+        </button>
+        <small class="login-help-text">🔒 By continuing, you agree to Myntra's Terms of Use and Privacy Policy.</small>
       </div>
 
+      <!-- Quick One-Click Demo Accounts -->
       <div class="quick-accounts-section">
-        <div class="quick-sec-title">Quick Demo Accounts (Click to Switch):</div>
+        <div class="quick-sec-title">⚡ Or Click Any Demo Account for Instant Login:</div>
         <div class="quick-accounts-grid">
-          <div class="quick-user-card ${AppState.currentUserId === 'rahul sharma' ? 'active' : ''}" onclick="loginUser('Rahul Sharma')">
+          <div class="quick-user-card ${AppState.currentUserId === 'rahul sharma' && AppState.isLoggedIn ? 'active' : ''}" 
+               onclick="loginWithFullDetails('Rahul Sharma', '9876543210', 'rahul.sharma@example.com')">
             <div class="qu-avatar">R</div>
             <div class="qu-info">
               <strong>Rahul Sharma</strong>
-              <span>📦 2 Orders (In Transit + Delivered)</span>
+              <span>📱 9876543210 • ✉️ rahul.sharma@example.com • 📦 2 Orders</span>
             </div>
           </div>
-          <div class="quick-user-card ${AppState.currentUserId === 'priya patel' ? 'active' : ''}" onclick="loginUser('Priya Patel')">
+          <div class="quick-user-card ${AppState.currentUserId === 'priya patel' && AppState.isLoggedIn ? 'active' : ''}" 
+               onclick="loginWithFullDetails('Priya Patel', '9812345678', 'priya.patel@example.com')">
             <div class="qu-avatar">P</div>
             <div class="qu-info">
               <strong>Priya Patel</strong>
-              <span>📦 1 Order (Delivered Kurta & Set)</span>
+              <span>📱 9812345678 • ✉️ priya.patel@example.com • 📦 1 Order</span>
             </div>
           </div>
-          <div class="quick-user-card ${AppState.currentUserId === 'aman verma' ? 'active' : ''}" onclick="loginUser('Aman Verma')">
+          <div class="quick-user-card ${AppState.currentUserId === 'aman verma' && AppState.isLoggedIn ? 'active' : ''}" 
+               onclick="loginWithFullDetails('Aman Verma', '9988776655', 'aman.verma@example.com')">
             <div class="qu-avatar">A</div>
             <div class="qu-info">
               <strong>Aman Verma</strong>
-              <span>📦 1 Order (Out for Delivery Sneakers)</span>
+              <span>📱 9988776655 • ✉️ aman.verma@example.com • 📦 1 Order</span>
             </div>
           </div>
         </div>
@@ -771,25 +929,61 @@ function openLoginModal() {
 
   modal.classList.add("modal-open");
   if (document.body) document.body.classList.add("modal-locked");
+}
 
-  const inputEl = document.getElementById("loginNameInput");
-  if (inputEl) {
-    inputEl.focus();
-    inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submitLoginInput();
-    });
+// Request OTP & Show OTP Verification Screen
+function requestLoginOTP() {
+  const name = document.getElementById("loginNameInput").value.trim();
+  const phone = document.getElementById("loginPhoneInput").value.trim();
+  const email = document.getElementById("loginEmailInput").value.trim();
+
+  if (!name || name.length < 2) {
+    showToast("Please enter your full name", "error");
+    document.getElementById("loginNameInput").focus();
+    return;
   }
+
+  const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+  if (!cleanPhone || cleanPhone.length < 10) {
+    showToast("Please enter a valid 10-digit mobile number", "error");
+    document.getElementById("loginPhoneInput").focus();
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    showToast("Please enter a valid email address", "error");
+    document.getElementById("loginEmailInput").focus();
+    return;
+  }
+
+  // Render OTP Verification step
+  const formBox = document.getElementById("loginFormContainer");
+  if (!formBox) return;
+
+  formBox.innerHTML = `
+    <div class="otp-verification-step">
+      <div class="otp-banner">
+        <span>📲 OTP sent to <b>+91 ${cleanPhone}</b> & <b>${email}</b></span>
+      </div>
+      <div class="otp-input-wrap">
+        <label for="loginOtpInput"><b>Enter 4-Digit Verification Code:</b></label>
+        <input type="text" id="loginOtpInput" maxlength="4" value="2026" class="otp-input-box" />
+        <small class="text-green">✓ Auto-filled demo OTP code: <b>2026</b></small>
+      </div>
+      <button class="btn btn-primary btn-block btn-large" 
+              onclick="loginWithFullDetails('${name.replace(/'/g, "\\'")}', '${cleanPhone}', '${email.replace(/'/g, "\\'")}')">
+        VERIFY OTP & LOGIN ➔
+      </button>
+      <button class="btn btn-outline btn-block btn-sm" style="margin-top: 8px;" onclick="openLoginModal()">
+        ← Change Mobile / Email
+      </button>
+    </div>
+  `;
 }
 
 function submitLoginInput() {
-  const input = document.getElementById("loginNameInput");
-  if (!input) return;
-  const name = input.value.trim();
-  if (!name) {
-    showToast("Please enter a name to continue", "error");
-    return;
-  }
-  loginUser(name);
+  requestLoginOTP();
 }
 
 
@@ -821,13 +1015,24 @@ function updateBadges() {
   const ordersCountEl = document.getElementById("ordersCount");
   const profileNameEl = document.getElementById("profileHeaderName");
   const announcementUserEl = document.getElementById("announcementUser");
+  const announcementSwitchBtn = document.getElementById("announcementSwitchBtn");
 
   const totalCartCount = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
   if (bagCountEl) bagCountEl.textContent = totalCartCount;
-  if (wishlistCountEl) wishlistCountEl.textContent = AppState.wishlist.length;
-  if (ordersCountEl) ordersCountEl.textContent = AppState.orders.length;
-  if (profileNameEl) profileNameEl.textContent = AppState.user.name.split(" ")[0];
-  if (announcementUserEl) announcementUserEl.textContent = AppState.user.name;
+
+  if (AppState.isLoggedIn) {
+    if (wishlistCountEl) wishlistCountEl.textContent = AppState.wishlist.length;
+    if (ordersCountEl) ordersCountEl.textContent = AppState.orders.length;
+    if (profileNameEl) profileNameEl.textContent = AppState.user.name.split(" ")[0];
+    if (announcementUserEl) announcementUserEl.textContent = AppState.user.name;
+    if (announcementSwitchBtn) announcementSwitchBtn.textContent = "Switch";
+  } else {
+    if (wishlistCountEl) wishlistCountEl.textContent = "0";
+    if (ordersCountEl) ordersCountEl.textContent = "0";
+    if (profileNameEl) profileNameEl.textContent = "Login";
+    if (announcementUserEl) announcementUserEl.textContent = "Guest";
+    if (announcementSwitchBtn) announcementSwitchBtn.textContent = "Login";
+  }
 }
 
 // 7. CATALOG FILTERING & RENDERING
@@ -1296,6 +1501,8 @@ function removeCoupon() {
 
 // 10. WISHLIST MANAGEMENT
 function toggleWishlist(productId, fromModal = false) {
+  if (!requireAuth("wishlist", () => toggleWishlist(productId, fromModal))) return;
+
   const idx = AppState.wishlist.indexOf(productId);
   const product = PRODUCTS.find(p => p.id === productId);
   const name = product ? product.name : "Item";
@@ -1318,6 +1525,8 @@ function toggleWishlist(productId, fromModal = false) {
 }
 
 function openWishlistModal() {
+  if (!requireAuth("wishlist", () => openWishlistModal())) return;
+
   renderWishlist();
   const modal = document.getElementById("wishlistModal");
   if (modal) {
@@ -1388,6 +1597,8 @@ function moveWishlistToBag(productId) {
 
 // 11. CHECKOUT & ORDER PLACEMENT FLOW
 function openCheckoutModal() {
+  if (!requireAuth("checkout", () => openCheckoutModal())) return;
+
   if (AppState.cart.length === 0) {
     showToast("Please add items to Bag first!", "error");
     return;
@@ -1795,6 +2006,8 @@ function openOrderSuccessModal(order) {
 
 // 13. ORDER HISTORY MANAGEMENT (User requested core feature!)
 function openOrderHistoryModal() {
+  if (!requireAuth("orders", () => openOrderHistoryModal())) return;
+
   renderOrderHistory();
   const modal = document.getElementById("orderHistoryModal");
   if (modal) {
@@ -2122,6 +2335,8 @@ function openInvoiceModal(orderId) {
 
 // 18. USER PROFILE MODAL
 function openProfileModal() {
+  if (!requireAuth("profile", () => openProfileModal())) return;
+
   const modal = document.getElementById("profileModal");
   const content = document.getElementById("profileModalContent");
   if (!modal || !content) return;
@@ -2176,13 +2391,16 @@ function openProfileModal() {
 
       <div class="profile-links-list">
         <button class="p-link-item p-link-highlight" onclick="closeAllModals(); openLoginModal();">
-          👤 Login / Switch User (Change Account)
+          👤 Switch Account (Login as another user)
         </button>
         <button class="p-link-item" onclick="closeAllModals(); openOrderHistoryModal();">
           📦 My Orders & Tracking
         </button>
         <button class="p-link-item" onclick="closeAllModals(); openWishlistModal();">
           ❤️ My Wishlist
+        </button>
+        <button class="p-link-item p-link-logout" onclick="logoutUser()">
+          🚪 Logout from Account
         </button>
         <button class="p-link-item" onclick="resetToInitialDemo()">
           🔄 Reset Demo Data to Factory Defaults
@@ -2349,6 +2567,11 @@ window.openProfileModal = openProfileModal;
 window.saveProfileDetails = saveProfileDetails;
 window.resetToInitialDemo = resetToInitialDemo;
 window.loginUser = loginUser;
+window.loginWithFullDetails = loginWithFullDetails;
+window.logoutUser = logoutUser;
+window.requireAuth = requireAuth;
+window.handleProfileHeaderClick = handleProfileHeaderClick;
+window.requestLoginOTP = requestLoginOTP;
 window.openLoginModal = openLoginModal;
 window.submitLoginInput = submitLoginInput;
 window.resetFilters = resetFilters;

@@ -6,19 +6,24 @@ A feature-rich, fully functional **Myntra E-Commerce Web Clone** built with vani
 
 ## 🌟 Key Features & Highlights
 
-### 1. 👤 Name-Based Login & Per-User Order History (NEW!)
-- **Instant Name Login**: Simply type any name (no passwords needed!) to switch or create an account.
+### 1. 🔐 Authentic Myntra Login & Gated Ordering (NEW!)
+- **Login Requirements**: Full Name, 10-Digit Mobile Number (`+91`), and Email Address.
+- **Interactive OTP Step**: Simulated 4-digit mobile/email verification (`2026`) with 1-click verification.
+- **Mandatory Login Gates (Like Real Myntra)**:
+  - Users **must log in** to view **Order History**, access **Wishlist**, or proceed through **Checkout** to place an order.
+  - Clicking any protected action as a guest immediately brings up the authentic Myntra login modal with a personalized action banner (e.g. *"Login required to view Orders"* or *"Login required to checkout"*).
+  - After logging in, the app automatically executes the pending action seamlessly!
+- **Logout Feature**: Includes a dedicated "Logout" button in the Profile menu and Login modal to easily test guest vs. authenticated modes.
 - **Complete Data Isolation**: Each user gets their own dedicated:
   - **Order History**: Orders placed by Rahul belong to Rahul; orders placed by Priya belong to Priya!
-  - **Shopping Bag / Cart**: Unique items and quantities per user.
+  - **Shopping Bag / Cart**: Unique items and quantities per account.
   - **Wishlist**: Saved styles saved individually.
-  - **Delivery Addresses**: Pre-configured or saved per account.
+  - **Delivery Addresses**: Saved per account with mobile number and email.
 - **Pre-Configured Demo Accounts**:
-  - **Rahul Sharma**: 2 Orders (1 in-transit BlueDart package, 1 delivered).
-  - **Priya Patel**: 1 Order (Delivered ethnic wear & cosmetics set).
-  - **Aman Verma**: 1 Order (Out for delivery Nike sneakers).
-  - **Any Custom Name**: Entering any new name creates a fresh user profile and private order history instantly!
-- **Fast Switch Access**: One-click "Switch" button in the sticky header, top announcement bar, Profile modal, and Order History banner.
+  - **Rahul Sharma**: 📱 `9876543210` • ✉️ `rahul.sharma@example.com` • 2 Orders.
+  - **Priya Patel**: 📱 `9812345678` • ✉️ `priya.patel@example.com` • 1 Order.
+  - **Aman Verma**: 📱 `9988776655` • ✉️ `aman.verma@example.com` • 1 Order.
+  - **Custom Login**: Fill any custom Name, Phone & Email to create an instant private profile!
 
 ### 2. 📦 Comprehensive Order History & Tracking
 - **Instant Past Orders**: Preloaded with realistic delivered and in-transit orders so you can test features immediately.
