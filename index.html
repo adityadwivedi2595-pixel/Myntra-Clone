@@ -17,6 +17,10 @@
       ✨ <b>THE GRAND FASHION EDIT</b> — FLAT ₹200 OFF on orders above ₹799! Use Code: <b>FLAT200</b>
     </div>
     <div class="announcement-links">
+      <a href="javascript:void(0)" onclick="openLoginModal()" class="user-switch-link">
+        👤 User: <b id="announcementUser">Rahul</b> <span class="switch-pill">Switch</span>
+      </a>
+      <span>|</span>
       <a href="javascript:void(0)" onclick="openOrderHistoryModal()">📦 Track Orders</a>
       <span>|</span>
       <a href="javascript:void(0)" onclick="openProfileModal()">Myntra Insider Club</a>
@@ -55,7 +59,13 @@
       <!-- Profile Action -->
       <button class="action-btn" onclick="openProfileModal()" title="User Profile">
         <span class="action-icon">👤</span>
-        <span class="action-label" id="profileHeaderName">Profile</span>
+        <span class="action-label" id="profileHeaderName">Rahul</span>
+      </button>
+
+      <!-- Switch User / Login Action -->
+      <button class="action-btn btn-switch-user" onclick="openLoginModal()" title="Login / Switch User">
+        <span class="action-icon">⇄</span>
+        <span class="action-label">Switch</span>
       </button>
 
       <!-- Orders Action (Explicit Shortcut for Order History) -->
@@ -283,6 +293,23 @@
   <!-- ============================================== -->
   <!-- MODALS & DRAWERS -->
   <!-- ============================================== -->
+
+  <!-- 0. LOGIN / SWITCH USER MODAL -->
+  <div class="modal" id="loginModal">
+    <div class="modal-overlay"></div>
+    <div class="modal-dialog modal-medium">
+      <div class="modal-header">
+        <div>
+          <h3>👤 Login / Switch Account</h3>
+          <span class="modal-count-sub">Type any name to switch orders</span>
+        </div>
+        <button class="modal-close" onclick="closeAllModals()">✕</button>
+      </div>
+      <div class="modal-body" id="loginModalContent">
+        <!-- Injected by app.js -->
+      </div>
+    </div>
+  </div>
 
   <!-- 1. CART / SHOPPING BAG DRAWER -->
   <div class="drawer" id="cartDrawer">

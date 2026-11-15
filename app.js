@@ -285,146 +285,327 @@ const COUPONS = {
   "FESTIVE500": { code: "FESTIVE500", flatDiscount: 500, minSpend: 1999, desc: "Flat ₹500 Mega Festive discount on ₹1999+" }
 };
 
-// 3. SEED ORDERS FOR IMMEDIATE RICH ORDER HISTORY
-const DEFAULT_ORDERS = [
-  {
-    id: "MYN-984321",
-    date: "14 Nov 2026, 03:20 PM",
-    timestamp: Date.now() - 86400000,
-    status: "In Transit",
-    statusCode: "SHIPPED",
-    statusMessage: "Package is on the way. Expected delivery tomorrow by 8 PM.",
-    progressStep: 3, // 1: Confirmed, 2: Packed, 3: Shipped, 4: Out for Delivery, 5: Delivered
-    paymentMethod: "UPI (Google Pay)",
-    items: [
-      {
-        id: "p1",
-        brand: "ROADSTER",
-        name: "Classic Solid Pure Cotton Tee",
-        size: "L",
-        price: 499,
-        originalPrice: 999,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80"
-      },
-      {
-        id: "p4",
-        brand: "LEVIS",
-        name: "511 Slim Fit Mid-Rise Clean Jeans",
-        size: "32",
-        price: 1899,
-        originalPrice: 3599,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=700&q=80"
-      }
-    ],
-    pricing: {
-      totalMRP: 4598,
-      discountMRP: 2200,
-      couponDiscount: 200,
-      deliveryFee: 0,
-      totalAmount: 2198
-    },
-    address: {
-      name: "Rahul Sharma",
-      mobile: "9876543210",
-      pincode: "110001",
-      address: "Flat 402, Green Avenue, Connaught Place",
-      city: "New Delhi",
-      state: "Delhi",
-      type: "Home"
-    },
-    trackingSteps: [
-      { title: "Order Confirmed", date: "14 Nov 2026, 03:20 PM", done: true, desc: "Your order was successfully verified." },
-      { title: "Packed at Bangalore Hub", date: "14 Nov 2026, 07:45 PM", done: true, desc: "Package sealed and labeled for courier." },
-      { title: "Shipped / In Transit", date: "15 Nov 2026, 08:30 AM", done: true, desc: "Handed over to BlueDart Express (AWB: BD829104)." },
-      { title: "Out for Delivery", date: "Pending", done: false, desc: "Delivery agent will contact upon arrival." },
-      { title: "Delivered", date: "Expected 16 Nov", done: false, desc: "Handover with OTP verification." }
-    ]
-  },
-  {
-    id: "MYN-842910",
-    date: "08 Nov 2026, 11:15 AM",
-    timestamp: Date.now() - (86400000 * 7),
-    status: "Delivered",
-    statusCode: "DELIVERED",
-    statusMessage: "Delivered on 10 Nov 2026. Return window active till 24 Nov.",
-    progressStep: 5,
-    paymentMethod: "Cash on Delivery",
-    items: [
-      {
-        id: "p5",
-        brand: "TOKYO TALKIES",
-        name: "Vintage Aesthetic Printed Tee",
-        size: "M",
-        price: 499,
-        originalPrice: 1199,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=700&q=80"
-      },
-      {
-        id: "p9",
-        brand: "MAMAEARTH",
-        name: "Vitamin C Daily Glow Skincare 3-Piece Kit",
-        size: "Combo Pack",
-        price: 899,
-        originalPrice: 1499,
-        quantity: 1,
-        image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=700&q=80"
-      }
-    ],
-    pricing: {
-      totalMRP: 2698,
-      discountMRP: 1300,
-      couponDiscount: 0,
-      deliveryFee: 0,
-      totalAmount: 1398
-    },
-    address: {
-      name: "Rahul Sharma",
-      mobile: "9876543210",
-      pincode: "110001",
-      address: "Flat 402, Green Avenue, Connaught Place",
-      city: "New Delhi",
-      state: "Delhi",
-      type: "Home"
-    },
-    trackingSteps: [
-      { title: "Order Confirmed", date: "08 Nov 2026, 11:15 AM", done: true, desc: "Order placed via COD." },
-      { title: "Packed at Warehouse", date: "08 Nov 2026, 04:30 PM", done: true, desc: "Quality inspection passed." },
-      { title: "Shipped", date: "09 Nov 2026, 06:10 AM", done: true, desc: "Departed sorting facility." },
-      { title: "Out for Delivery", date: "10 Nov 2026, 09:20 AM", done: true, desc: "Agent Amit Kumar on the way." },
-      { title: "Delivered", date: "10 Nov 2026, 01:45 PM", done: true, desc: "Delivered to recipient with OTP." }
-    ]
-  }
-];
-
-// 4. APPLICATION STATE WITH LOCALSTORAGE PERSISTENCE
-const AppState = {
-  cart: JSON.parse(localStorage.getItem("myntra_cart")) || [
-    { id: "p2", size: "L", quantity: 1 }
-  ],
-  wishlist: JSON.parse(localStorage.getItem("myntra_wishlist")) || ["p4", "p7"],
-  orders: JSON.parse(localStorage.getItem("myntra_orders")) || DEFAULT_ORDERS,
-  addresses: JSON.parse(localStorage.getItem("myntra_addresses")) || [
-    {
-      id: "addr_1",
-      name: "Rahul Sharma",
-      mobile: "9876543210",
-      pincode: "110001",
-      address: "Flat 402, Green Avenue, Connaught Place",
-      city: "New Delhi",
-      state: "Delhi",
-      type: "Home",
-      isDefault: true
-    }
-  ],
-  user: JSON.parse(localStorage.getItem("myntra_user")) || {
+// 3. MULTI-USER SEED DATABASE (PER-USER ORDERS, CART & WISHLIST)
+const DEFAULT_USERS_DB = {
+  "rahul sharma": {
     name: "Rahul Sharma",
     email: "rahul.sharma@example.com",
     mobile: "+91 98765 43210",
+    tier: "Myntra Insider Elite",
+    superCoins: 480,
+    addresses: [
+      {
+        id: "addr_rahul",
+        name: "Rahul Sharma",
+        mobile: "9876543210",
+        pincode: "110001",
+        address: "Flat 402, Green Avenue, Connaught Place",
+        city: "New Delhi",
+        state: "Delhi",
+        type: "Home",
+        isDefault: true
+      }
+    ],
+    cart: [
+      { id: "p2", size: "L", quantity: 1 }
+    ],
+    wishlist: ["p4", "p7"],
+    orders: [
+      {
+        id: "MYN-984321",
+        date: "14 Nov 2026, 03:20 PM",
+        timestamp: Date.now() - 86400000,
+        status: "In Transit",
+        statusCode: "SHIPPED",
+        statusMessage: "Package is on the way. Expected delivery tomorrow by 8 PM.",
+        progressStep: 3, // 1: Confirmed, 2: Packed, 3: Shipped, 4: Out for Delivery, 5: Delivered
+        paymentMethod: "UPI (Google Pay)",
+        items: [
+          {
+            id: "p1",
+            brand: "ROADSTER",
+            name: "Classic Solid Pure Cotton Tee",
+            size: "L",
+            price: 499,
+            originalPrice: 999,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=700&q=80"
+          },
+          {
+            id: "p4",
+            brand: "LEVIS",
+            name: "511 Slim Fit Mid-Rise Clean Jeans",
+            size: "32",
+            price: 1899,
+            originalPrice: 3599,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=700&q=80"
+          }
+        ],
+        pricing: {
+          totalMRP: 4598,
+          discountMRP: 2200,
+          couponDiscount: 200,
+          deliveryFee: 0,
+          totalAmount: 2198
+        },
+        address: {
+          name: "Rahul Sharma",
+          mobile: "9876543210",
+          pincode: "110001",
+          address: "Flat 402, Green Avenue, Connaught Place",
+          city: "New Delhi",
+          state: "Delhi",
+          type: "Home"
+        },
+        trackingSteps: [
+          { title: "Order Confirmed", date: "14 Nov 2026, 03:20 PM", done: true, desc: "Your order was successfully verified." },
+          { title: "Packed at Bangalore Hub", date: "14 Nov 2026, 07:45 PM", done: true, desc: "Package sealed and labeled for courier." },
+          { title: "Shipped / In Transit", date: "15 Nov 2026, 08:30 AM", done: true, desc: "Handed over to BlueDart Express (AWB: BD829104)." },
+          { title: "Out for Delivery", date: "Pending", done: false, desc: "Delivery agent will contact upon arrival." },
+          { title: "Delivered", date: "Expected 16 Nov", done: false, desc: "Handover with OTP verification." }
+        ]
+      },
+      {
+        id: "MYN-842910",
+        date: "08 Nov 2026, 11:15 AM",
+        timestamp: Date.now() - (86400000 * 7),
+        status: "Delivered",
+        statusCode: "DELIVERED",
+        statusMessage: "Delivered on 10 Nov 2026. Return window active till 24 Nov.",
+        progressStep: 5,
+        paymentMethod: "Cash on Delivery",
+        items: [
+          {
+            id: "p5",
+            brand: "TOKYO TALKIES",
+            name: "Vintage Aesthetic Printed Tee",
+            size: "M",
+            price: 499,
+            originalPrice: 1199,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=700&q=80"
+          },
+          {
+            id: "p9",
+            brand: "MAMAEARTH",
+            name: "Vitamin C Daily Glow Skincare 3-Piece Kit",
+            size: "Combo Pack",
+            price: 899,
+            originalPrice: 1499,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?auto=format&fit=crop&w=700&q=80"
+          }
+        ],
+        pricing: {
+          totalMRP: 2698,
+          discountMRP: 1300,
+          couponDiscount: 0,
+          deliveryFee: 0,
+          totalAmount: 1398
+        },
+        address: {
+          name: "Rahul Sharma",
+          mobile: "9876543210",
+          pincode: "110001",
+          address: "Flat 402, Green Avenue, Connaught Place",
+          city: "New Delhi",
+          state: "Delhi",
+          type: "Home"
+        },
+        trackingSteps: [
+          { title: "Order Confirmed", date: "08 Nov 2026, 11:15 AM", done: true, desc: "Order placed via COD." },
+          { title: "Packed at Warehouse", date: "08 Nov 2026, 04:30 PM", done: true, desc: "Quality inspection passed." },
+          { title: "Shipped", date: "09 Nov 2026, 06:10 AM", done: true, desc: "Departed sorting facility." },
+          { title: "Out for Delivery", date: "10 Nov 2026, 09:20 AM", done: true, desc: "Agent Amit Kumar on the way." },
+          { title: "Delivered", date: "10 Nov 2026, 01:45 PM", done: true, desc: "Delivered to recipient with OTP." }
+        ]
+      }
+    ]
+  },
+  "priya patel": {
+    name: "Priya Patel",
+    email: "priya.patel@example.com",
+    mobile: "+91 98123 45678",
+    tier: "Myntra Insider Select",
+    superCoins: 650,
+    addresses: [
+      {
+        id: "addr_priya",
+        name: "Priya Patel",
+        mobile: "9812345678",
+        pincode: "400050",
+        address: "B-12, Sea Breeze Apts, Bandra West",
+        city: "Mumbai",
+        state: "Maharashtra",
+        type: "Home",
+        isDefault: true
+      }
+    ],
+    cart: [
+      { id: "p6", size: "S", quantity: 1 }
+    ],
+    wishlist: ["p5", "p8", "p11"],
+    orders: [
+      {
+        id: "MYN-741920",
+        date: "11 Nov 2026, 05:40 PM",
+        timestamp: Date.now() - (86400000 * 4),
+        status: "Delivered",
+        statusCode: "DELIVERED",
+        statusMessage: "Delivered on 13 Nov 2026 to Bandra West.",
+        progressStep: 5,
+        paymentMethod: "UPI (PhonePe)",
+        items: [
+          {
+            id: "p8",
+            brand: "ANOUK",
+            name: "Floral Foil Print Anarkali Kurta Set",
+            size: "M",
+            price: 1499,
+            originalPrice: 3999,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80"
+          },
+          {
+            id: "p11",
+            brand: "MAYBELLINE NEW YORK",
+            name: "SuperStay Matte Ink Liquid Lipstick Set",
+            size: "Set of 2",
+            price: 749,
+            originalPrice: 1299,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=700&q=80"
+          }
+        ],
+        pricing: {
+          totalMRP: 5298,
+          discountMRP: 3050,
+          couponDiscount: 0,
+          deliveryFee: 0,
+          totalAmount: 2248
+        },
+        address: {
+          name: "Priya Patel",
+          mobile: "9812345678",
+          pincode: "400050",
+          address: "B-12, Sea Breeze Apts, Bandra West",
+          city: "Mumbai",
+          state: "Maharashtra",
+          type: "Home"
+        },
+        trackingSteps: [
+          { title: "Order Confirmed", date: "11 Nov 2026, 05:40 PM", done: true, desc: "Verified via UPI." },
+          { title: "Packed at Mumbai Hub", date: "12 Nov 2026, 10:15 AM", done: true, desc: "Quality checks completed." },
+          { title: "Shipped", date: "12 Nov 2026, 02:40 PM", done: true, desc: "Dispatched via Express Courier." },
+          { title: "Out for Delivery", date: "13 Nov 2026, 09:30 AM", done: true, desc: "Agent Sunita Sharma on the way." },
+          { title: "Delivered", date: "13 Nov 2026, 01:10 PM", done: true, desc: "Successfully delivered." }
+        ]
+      }
+    ]
+  },
+  "aman verma": {
+    name: "Aman Verma",
+    email: "aman.verma@example.com",
+    mobile: "+91 99887 76655",
     tier: "Myntra Insider",
-    superCoins: 480
+    superCoins: 220,
+    addresses: [
+      {
+        id: "addr_aman",
+        name: "Aman Verma",
+        mobile: "9988776655",
+        pincode: "560034",
+        address: "House 18, 5th Main, Koramangala",
+        city: "Bangalore",
+        state: "Karnataka",
+        type: "Home",
+        isDefault: true
+      }
+    ],
+    cart: [],
+    wishlist: ["p15"],
+    orders: [
+      {
+        id: "MYN-518290",
+        date: "14 Nov 2026, 01:15 PM",
+        timestamp: Date.now() - 90000000,
+        status: "Out for Delivery",
+        statusCode: "OUT_FOR_DELIVERY",
+        statusMessage: "Out for delivery! Agent is in your area.",
+        progressStep: 4,
+        paymentMethod: "Cash on Delivery",
+        items: [
+          {
+            id: "p15",
+            brand: "NIKE",
+            name: "Court Legacy White Street Sneakers",
+            size: "UK 9",
+            price: 2499,
+            originalPrice: 4295,
+            quantity: 1,
+            image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=700&q=80"
+          }
+        ],
+        pricing: {
+          totalMRP: 4295,
+          discountMRP: 1796,
+          couponDiscount: 0,
+          deliveryFee: 0,
+          totalAmount: 2499
+        },
+        address: {
+          name: "Aman Verma",
+          mobile: "9988776655",
+          pincode: "560034",
+          address: "House 18, 5th Main, Koramangala",
+          city: "Bangalore",
+          state: "Karnataka",
+          type: "Home"
+        },
+        trackingSteps: [
+          { title: "Order Confirmed", date: "14 Nov 2026, 01:15 PM", done: true, desc: "Order confirmed." },
+          { title: "Packed at Warehouse", date: "14 Nov 2026, 06:00 PM", done: true, desc: "Packed in eco-box." },
+          { title: "Shipped", date: "15 Nov 2026, 04:30 AM", done: true, desc: "Arrived at local hub." },
+          { title: "Out for Delivery", date: "15 Nov 2026, 09:45 AM", done: true, desc: "Delivery executive out for delivery." },
+          { title: "Delivered", date: "Expected Today by 7 PM", done: false, desc: "Delivery OTP required." }
+        ]
+      }
+    ]
+  }
+};
+
+// 4. MULTI-USER STORAGE INITIALIZATION & APPLICATION STATE
+let loadedUsersDB = null;
+try {
+  loadedUsersDB = JSON.parse(localStorage.getItem("myntra_users_db"));
+} catch (e) {
+  loadedUsersDB = null;
+}
+if (!loadedUsersDB || typeof loadedUsersDB !== "object" || Object.keys(loadedUsersDB).length === 0) {
+  loadedUsersDB = DEFAULT_USERS_DB;
+  localStorage.setItem("myntra_users_db", JSON.stringify(DEFAULT_USERS_DB));
+}
+
+let activeUserKey = localStorage.getItem("myntra_active_user_key") || "rahul sharma";
+if (!loadedUsersDB[activeUserKey]) {
+  activeUserKey = Object.keys(loadedUsersDB)[0] || "rahul sharma";
+}
+const activeUser = loadedUsersDB[activeUserKey];
+
+const AppState = {
+  usersDB: loadedUsersDB,
+  currentUserId: activeUserKey,
+  cart: activeUser.cart || [],
+  wishlist: activeUser.wishlist || [],
+  orders: activeUser.orders || [],
+  addresses: activeUser.addresses || [],
+  user: {
+    name: activeUser.name,
+    email: activeUser.email,
+    mobile: activeUser.mobile,
+    tier: activeUser.tier || "Myntra Insider",
+    superCoins: activeUser.superCoins || 100
   },
   appliedCoupon: null,
   activeFilter: "all",
@@ -435,15 +616,182 @@ const AppState = {
   selectedModalSize: null
 };
 
-// State Persistence Helper
+// State Persistence Helper (Saves to the active user's partition)
 function saveState() {
-  localStorage.setItem("myntra_cart", JSON.stringify(AppState.cart));
-  localStorage.setItem("myntra_wishlist", JSON.stringify(AppState.wishlist));
-  localStorage.setItem("myntra_orders", JSON.stringify(AppState.orders));
-  localStorage.setItem("myntra_addresses", JSON.stringify(AppState.addresses));
-  localStorage.setItem("myntra_user", JSON.stringify(AppState.user));
+  const currentKey = AppState.currentUserId;
+  if (!AppState.usersDB[currentKey]) {
+    AppState.usersDB[currentKey] = {
+      name: AppState.user.name,
+      email: AppState.user.email,
+      mobile: AppState.user.mobile,
+      tier: AppState.user.tier || "Myntra Insider",
+      superCoins: AppState.user.superCoins || 100,
+      addresses: AppState.addresses,
+      cart: AppState.cart,
+      wishlist: AppState.wishlist,
+      orders: AppState.orders
+    };
+  } else {
+    AppState.usersDB[currentKey].name = AppState.user.name;
+    AppState.usersDB[currentKey].email = AppState.user.email;
+    AppState.usersDB[currentKey].mobile = AppState.user.mobile;
+    AppState.usersDB[currentKey].tier = AppState.user.tier;
+    AppState.usersDB[currentKey].superCoins = AppState.user.superCoins;
+    AppState.usersDB[currentKey].addresses = AppState.addresses;
+    AppState.usersDB[currentKey].cart = AppState.cart;
+    AppState.usersDB[currentKey].wishlist = AppState.wishlist;
+    AppState.usersDB[currentKey].orders = AppState.orders;
+  }
+
+  localStorage.setItem("myntra_users_db", JSON.stringify(AppState.usersDB));
+  localStorage.setItem("myntra_active_user_key", currentKey);
   updateBadges();
 }
+
+// User Switching / Login by Name
+function loginUser(rawName) {
+  if (!rawName || !rawName.trim()) {
+    showToast("Please enter a name to log in", "error");
+    return;
+  }
+  const name = rawName.trim();
+  const key = name.toLowerCase();
+
+  // Save current active user data first
+  saveState();
+
+  // If user does not exist yet, create a fresh account for them
+  if (!AppState.usersDB[key]) {
+    AppState.usersDB[key] = {
+      name: name,
+      email: `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`,
+      mobile: `+91 98${Math.floor(10000000 + Math.random() * 90000000)}`,
+      tier: "Myntra Insider Member",
+      superCoins: 150,
+      addresses: [
+        {
+          id: `addr_${Date.now()}`,
+          name: name,
+          mobile: `98${Math.floor(10000000 + Math.random() * 90000000)}`,
+          pincode: "110001",
+          address: "Sector 14, Main Road",
+          city: "New Delhi",
+          state: "Delhi",
+          type: "Home",
+          isDefault: true
+        }
+      ],
+      cart: [],
+      wishlist: [],
+      orders: []
+    };
+  }
+
+  AppState.currentUserId = key;
+  const userData = AppState.usersDB[key];
+  AppState.user = {
+    name: userData.name,
+    email: userData.email,
+    mobile: userData.mobile,
+    tier: userData.tier || "Myntra Insider",
+    superCoins: userData.superCoins || 100
+  };
+  AppState.addresses = userData.addresses || [];
+  AppState.cart = userData.cart || [];
+  AppState.wishlist = userData.wishlist || [];
+  AppState.orders = userData.orders || [];
+  AppState.appliedCoupon = null;
+
+  saveState();
+  closeAllModals();
+
+  renderCatalog();
+  renderCart();
+  renderWishlist();
+  updateBadges();
+
+  showToast(`Welcome, ${userData.name}! Your orders & bag loaded.`, "success");
+}
+
+function openLoginModal() {
+  const modal = document.getElementById("loginModal");
+  const content = document.getElementById("loginModalContent");
+  if (!modal || !content) return;
+
+  const currentName = AppState.user.name;
+
+  content.innerHTML = `
+    <div class="login-modal-layout">
+      <div class="login-brand-banner">
+        <div class="login-avatar">${currentName.charAt(0)}</div>
+        <div class="login-user-info">
+          <h4>Currently Logged In:</h4>
+          <h3>${currentName}</h3>
+          <span class="login-orders-count">📦 ${AppState.orders.length} Orders | 🛍️ ${AppState.cart.length} in Bag</span>
+        </div>
+      </div>
+
+      <div class="login-form-box">
+        <label for="loginNameInput"><b>Enter Your Name to Login / Switch:</b></label>
+        <div class="login-input-row">
+          <input type="text" id="loginNameInput" placeholder="Enter your name (e.g. Rahul, Priya, Vikram...)" autofocus />
+          <button class="btn btn-primary" onclick="submitLoginInput()">LOGIN ➔</button>
+        </div>
+        <small class="login-help-text">✨ Kisi ka bhi name type karein! Naya name type karne par unka personal account khulega aur Order History unke naam se alag save hogi.</small>
+      </div>
+
+      <div class="quick-accounts-section">
+        <div class="quick-sec-title">Quick Demo Accounts (Click to Switch):</div>
+        <div class="quick-accounts-grid">
+          <div class="quick-user-card ${AppState.currentUserId === 'rahul sharma' ? 'active' : ''}" onclick="loginUser('Rahul Sharma')">
+            <div class="qu-avatar">R</div>
+            <div class="qu-info">
+              <strong>Rahul Sharma</strong>
+              <span>📦 2 Orders (In Transit + Delivered)</span>
+            </div>
+          </div>
+          <div class="quick-user-card ${AppState.currentUserId === 'priya patel' ? 'active' : ''}" onclick="loginUser('Priya Patel')">
+            <div class="qu-avatar">P</div>
+            <div class="qu-info">
+              <strong>Priya Patel</strong>
+              <span>📦 1 Order (Delivered Kurta & Set)</span>
+            </div>
+          </div>
+          <div class="quick-user-card ${AppState.currentUserId === 'aman verma' ? 'active' : ''}" onclick="loginUser('Aman Verma')">
+            <div class="qu-avatar">A</div>
+            <div class="qu-info">
+              <strong>Aman Verma</strong>
+              <span>📦 1 Order (Out for Delivery Sneakers)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add("modal-open");
+  if (document.body) document.body.classList.add("modal-locked");
+
+  const inputEl = document.getElementById("loginNameInput");
+  if (inputEl) {
+    inputEl.focus();
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitLoginInput();
+    });
+  }
+}
+
+function submitLoginInput() {
+  const input = document.getElementById("loginNameInput");
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) {
+    showToast("Please enter a name to continue", "error");
+    return;
+  }
+  loginUser(name);
+}
+
 
 // 5. TOAST NOTIFICATION UTILITY
 function showToast(message, type = "success") {
@@ -472,12 +820,14 @@ function updateBadges() {
   const wishlistCountEl = document.getElementById("wishlistCount");
   const ordersCountEl = document.getElementById("ordersCount");
   const profileNameEl = document.getElementById("profileHeaderName");
+  const announcementUserEl = document.getElementById("announcementUser");
 
   const totalCartCount = AppState.cart.reduce((sum, item) => sum + item.quantity, 0);
   if (bagCountEl) bagCountEl.textContent = totalCartCount;
   if (wishlistCountEl) wishlistCountEl.textContent = AppState.wishlist.length;
   if (ordersCountEl) ordersCountEl.textContent = AppState.orders.length;
   if (profileNameEl) profileNameEl.textContent = AppState.user.name.split(" ")[0];
+  if (announcementUserEl) announcementUserEl.textContent = AppState.user.name;
 }
 
 // 7. CATALOG FILTERING & RENDERING
@@ -667,7 +1017,7 @@ function openProductModal(productId) {
   `;
 
   modal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 function selectSize(size, btnEl) {
@@ -694,7 +1044,7 @@ function checkPincode() {
 function closeAllModals() {
   document.querySelectorAll(".modal").forEach(m => m.classList.remove("modal-open"));
   document.querySelectorAll(".drawer").forEach(d => d.classList.remove("drawer-open"));
-  document.body.classList.remove("modal-locked");
+  if (document.body) document.body.classList.remove("modal-locked");
 }
 
 function quickAddToBag(productId) {
@@ -910,7 +1260,7 @@ function openCartDrawer() {
   const drawer = document.getElementById("cartDrawer");
   if (drawer) {
     drawer.classList.add("drawer-open");
-    document.body.classList.add("modal-locked");
+    if (document.body) document.body.classList.add("modal-locked");
   }
 }
 
@@ -972,7 +1322,7 @@ function openWishlistModal() {
   const modal = document.getElementById("wishlistModal");
   if (modal) {
     modal.classList.add("modal-open");
-    document.body.classList.add("modal-locked");
+    if (document.body) document.body.classList.add("modal-locked");
   }
 }
 
@@ -1049,7 +1399,7 @@ function openCheckoutModal() {
 
   renderCheckoutContent();
   checkoutModal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 function renderCheckoutContent() {
@@ -1440,7 +1790,7 @@ function openOrderSuccessModal(order) {
   `;
 
   modal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 // 13. ORDER HISTORY MANAGEMENT (User requested core feature!)
@@ -1449,7 +1799,7 @@ function openOrderHistoryModal() {
   const modal = document.getElementById("orderHistoryModal");
   if (modal) {
     modal.classList.add("modal-open");
-    document.body.classList.add("modal-locked");
+    if (document.body) document.body.classList.add("modal-locked");
   }
 }
 
@@ -1460,19 +1810,38 @@ function renderOrderHistory() {
 
   if (countEl) countEl.textContent = `(${AppState.orders.length} Orders)`;
 
+  const userBannerHTML = `
+    <div class="user-order-account-banner">
+      <div class="uo-left">
+        <div class="user-avatar-mini">${AppState.user.name.charAt(0)}</div>
+        <div class="uo-meta">
+          <div class="uo-title">Orders for: <b>${AppState.user.name}</b> (${AppState.orders.length})</div>
+          <div class="uo-sub">Har user ke liye Order History alag hoti hai • 📱 ${AppState.user.mobile}</div>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm btn-switch-orders" onclick="openLoginModal()">
+        ⇄ Switch User / Login
+      </button>
+    </div>
+  `;
+
   if (AppState.orders.length === 0) {
     container.innerHTML = `
+      ${userBannerHTML}
       <div class="empty-state-box full-width">
         <div class="empty-icon">📦</div>
-        <h3>No orders placed yet!</h3>
-        <p>You haven't placed any orders yet. Discover our curated collections and place your first order.</p>
-        <button class="btn btn-primary" onclick="closeAllModals();">START SHOPPING</button>
+        <h3>No orders found for ${AppState.user.name}!</h3>
+        <p>Aapne is naam se abhi koi order place nahi kiya hai. Aap shopping karke naya order place kar sakte hain ya doosre user (e.g. Rahul Sharma ya Priya Patel) par switch karke past orders dekh sakte hain.</p>
+        <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content:center;">
+          <button class="btn btn-primary" onclick="closeAllModals();">START SHOPPING</button>
+          <button class="btn btn-outline" onclick="openLoginModal();">⇄ SWITCH USER</button>
+        </div>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = AppState.orders.map(order => {
+  const orderCardsHTML = AppState.orders.map(order => {
     const isCancelled = order.statusCode === "CANCELLED";
     const isDelivered = order.statusCode === "DELIVERED";
     const statusClass = isCancelled ? "status-cancelled" : isDelivered ? "status-delivered" : "status-active";
@@ -1572,6 +1941,8 @@ function renderOrderHistory() {
       </div>
     `;
   }).join("");
+
+  container.innerHTML = userBannerHTML + orderCardsHTML;
 }
 
 // 14. ORDER TRACKING TIMELINE MODAL
@@ -1619,7 +1990,7 @@ function openOrderTrackingTimeline(orderId) {
   `;
 
   modal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 // 15. CANCEL ORDER
@@ -1746,7 +2117,7 @@ function openInvoiceModal(orderId) {
   `;
 
   modal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 // 18. USER PROFILE MODAL
@@ -1804,6 +2175,9 @@ function openProfileModal() {
       </div>
 
       <div class="profile-links-list">
+        <button class="p-link-item p-link-highlight" onclick="closeAllModals(); openLoginModal();">
+          👤 Login / Switch User (Change Account)
+        </button>
         <button class="p-link-item" onclick="closeAllModals(); openOrderHistoryModal();">
           📦 My Orders & Tracking
         </button>
@@ -1818,7 +2192,7 @@ function openProfileModal() {
   `;
 
   modal.classList.add("modal-open");
-  document.body.classList.add("modal-locked");
+  if (document.body) document.body.classList.add("modal-locked");
 }
 
 function saveProfileDetails() {
@@ -1974,6 +2348,9 @@ window.openInvoiceModal = openInvoiceModal;
 window.openProfileModal = openProfileModal;
 window.saveProfileDetails = saveProfileDetails;
 window.resetToInitialDemo = resetToInitialDemo;
+window.loginUser = loginUser;
+window.openLoginModal = openLoginModal;
+window.submitLoginInput = submitLoginInput;
 window.resetFilters = resetFilters;
 window.setCategoryFilter = setCategoryFilter;
 

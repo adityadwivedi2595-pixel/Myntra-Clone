@@ -6,7 +6,21 @@ A feature-rich, fully functional **Myntra E-Commerce Web Clone** built with vani
 
 ## 🌟 Key Features & Highlights
 
-### 1. 📦 Comprehensive Order History & Tracking (Core Feature)
+### 1. 👤 Name-Based Login & Per-User Order History (NEW!)
+- **Instant Name Login**: Simply type any name (no passwords needed!) to switch or create an account.
+- **Complete Data Isolation**: Each user gets their own dedicated:
+  - **Order History**: Orders placed by Rahul belong to Rahul; orders placed by Priya belong to Priya!
+  - **Shopping Bag / Cart**: Unique items and quantities per user.
+  - **Wishlist**: Saved styles saved individually.
+  - **Delivery Addresses**: Pre-configured or saved per account.
+- **Pre-Configured Demo Accounts**:
+  - **Rahul Sharma**: 2 Orders (1 in-transit BlueDart package, 1 delivered).
+  - **Priya Patel**: 1 Order (Delivered ethnic wear & cosmetics set).
+  - **Aman Verma**: 1 Order (Out for delivery Nike sneakers).
+  - **Any Custom Name**: Entering any new name creates a fresh user profile and private order history instantly!
+- **Fast Switch Access**: One-click "Switch" button in the sticky header, top announcement bar, Profile modal, and Order History banner.
+
+### 2. 📦 Comprehensive Order History & Tracking
 - **Instant Past Orders**: Preloaded with realistic delivered and in-transit orders so you can test features immediately.
 - **Live Visual Progress Tracker**: Interactive 5-step status stepper (`Order Confirmed` ➔ `Packed` ➔ `Shipped` ➔ `Out for Delivery` ➔ `Delivered`).
 - **Live Package Tracking**: Realistic BlueDart Express courier timeline with detailed checkpoint timestamps and locations.
@@ -79,3 +93,4 @@ No `npm install` or compilation needed!
 
 ## 💾 State Persistence
 All changes—cart items, wishlisted products, custom delivery addresses, and newly placed or cancelled orders—are persistently saved in your browser's `localStorage`. Refreshing or reopening the page preserves your complete shopping and order history!
+
