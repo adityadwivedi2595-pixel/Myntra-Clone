@@ -18,7 +18,7 @@
     </div>
     <div class="announcement-links">
       <a href="javascript:void(0)" onclick="openLoginModal()" class="user-switch-link">
-        👤 User: <b id="announcementUser">Rahul</b> <span class="switch-pill">Switch</span>
+        👤 User: <b id="announcementUser">Guest</b> <span class="switch-pill" id="announcementSwitchBtn">Login / Signup</span>
       </a>
       <span>|</span>
       <a href="javascript:void(0)" onclick="openOrderHistoryModal()">📦 Track Orders</a>
@@ -59,13 +59,13 @@
       <!-- Profile Action -->
       <button class="action-btn" onclick="handleProfileHeaderClick()" title="User Profile">
         <span class="action-icon">👤</span>
-        <span class="action-label" id="profileHeaderName">Rahul</span>
+        <span class="action-label" id="profileHeaderName">Login</span>
       </button>
 
       <!-- Switch User / Login Action -->
       <button class="action-btn btn-switch-user" onclick="openLoginModal()" title="Login / Switch User">
         <span class="action-icon">⇄</span>
-        <span class="action-label">Switch</span>
+        <span class="action-label" id="headerSwitchBtnLabel">Login</span>
       </button>
 
       <!-- Orders Action (Explicit Shortcut for Order History) -->
